@@ -31,6 +31,8 @@ def recursive_match(text: str, pattern: str) -> bool:
     False
     >>> recursive_match('aa', '.*')
     True
+    >>> recursive_match('ab', 'b*')
+    False
     """
     if not pattern:
         return not text
@@ -42,7 +44,9 @@ def recursive_match(text: str, pattern: str) -> bool:
         return recursive_match(text[:-1], pattern[:-1])
 
     if pattern[-1] == "*":
-        return recursive_match(text[:-1], pattern) or recursive_match(
+        # The star can take the last character only if its element matches it.
+        takes_last = text[-1] == pattern[-2] or pattern[-2] == "."
+        return (takes_last and recursive_match(text[:-1], pattern)) or recursive_match(
             text, pattern[:-2]
         )
 
