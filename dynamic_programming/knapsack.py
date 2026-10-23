@@ -36,7 +36,7 @@ def knapsack(w, wt, val, n):
             else:
                 dp[i][w_] = dp[i - 1][w_]
 
-    return dp[n][w_], dp
+    return dp[n][w], dp
 
 
 def knapsack_with_example_solution(w: int, wt: list, val: list):
@@ -67,6 +67,10 @@ def knapsack_with_example_solution(w: int, wt: list, val: list):
     (142, {2, 3, 4})
     >>> knapsack_with_example_solution(6, [4, 3, 2, 3], [3, 2, 4, 4])
     (8, {3, 4})
+    >>> knapsack_with_example_solution(0, [1, 2], [10, 20])
+    (0, set())
+    >>> knapsack_with_example_solution(5, [], [])
+    (0, set())
     >>> knapsack_with_example_solution(6, [4, 3, 2, 3], [3, 2, 4])
     Traceback (most recent call last):
         ...
