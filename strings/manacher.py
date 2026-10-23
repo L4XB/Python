@@ -4,6 +4,8 @@ def palindromic_string(input_string: str) -> str:
     'abbba'
     >>> palindromic_string('ababa')
     'ababa'
+    >>> palindromic_string('aaabbbbb')
+    'bbbbb'
 
     Manacher's algorithm which finds Longest palindromic Substring in linear time.
 
@@ -16,6 +18,7 @@ def palindromic_string(input_string: str) -> str:
     3. return corresponding output_string by removing all "|"
     """
     max_length = 0
+    max_characters = 0
 
     # if input_string is "aba" than new_input_string become "a|b|a"
     new_input_string = ""
@@ -53,8 +56,12 @@ def palindromic_string(input_string: str) -> str:
             left = j - k + 1
             right = j + k - 1
 
-        # update max_length and start position
-        if max_length < length[j]:
+        # update max_length and start position. A palindrome that starts and ends
+        # with "|" holds one input character fewer than one of the same length that
+        # starts and ends with a character, so compare the characters they hold
+        characters = k if new_input_string[j - k + 1] != "|" else k - 1
+        if max_characters < characters:
+            max_characters = characters
             max_length = length[j]
             start = j
 
