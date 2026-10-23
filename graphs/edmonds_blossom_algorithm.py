@@ -109,18 +109,39 @@ class EdmondsBlossomAlgorithm:
                 while queue and not augmenting_path_found:
                     current = queue.popleft()  # Get the current vertex
                     for y in graph[current]:  # Explore adjacent vertices
-                        # Skip if we're looking at the current match
-                        if match[current] == y:
+                        # Skip the current match and edges inside a blossom
+                        if match[current] == y or base[current] == base[y]:
                             continue
 
-                        if base[current] == base[y]:  # Avoid self-loops
-                            continue
-
-                        if parent[y] == EdmondsBlossomAlgorithm.UNMATCHED:
-                            # Case 1: y is unmatched;
+                        # Case 1: y is the root or the match of a vertex in the
+                        # tree, so the edge closes an odd cycle: a blossom
+                        if y == u or (
+                            match[y] != EdmondsBlossomAlgorithm.UNMATCHED
+                            and parent[match[y]] != EdmondsBlossomAlgorithm.UNMATCHED
+                        ):
+                            base_u = EdmondsBlossomAlgorithm.find_base(
+                                base, parent, match, current, y
+                            )
+                            EdmondsBlossomAlgorithm.contract_blossom(
+                                BlossomData(
+                                    BlossomAuxData(
+                                        queue,
+                                        parent,
+                                        base,
+                                        in_blossom,
+                                        match,
+                                        in_queue,
+                                    ),
+                                    current,
+                                    y,
+                                    base_u,
+                                )
+                            )
+                        elif parent[y] == EdmondsBlossomAlgorithm.UNMATCHED:
+                            parent[y] = current
+                            # Case 2: y is unmatched;
                             # we've found an augmenting path
                             if match[y] == EdmondsBlossomAlgorithm.UNMATCHED:
-                                parent[y] = current  # Update the parent
                                 augmenting_path_found = True
                                 # Augment along this path
                                 EdmondsBlossomAlgorithm.update_matching(
@@ -128,36 +149,12 @@ class EdmondsBlossomAlgorithm:
                                 )
                                 break
 
-                            # Case 2: y is matched;
+                            # Case 3: y is matched;
                             # add y's match to the queue
                             z = match[y]
-                            parent[y] = current
-                            parent[z] = y
                             if not in_queue[z]:  # If z is not already in the queue
                                 queue.append(z)
                                 in_queue[z] = True
-                        else:
-                            # Case 3: Both current and y have a parent;
-                            # check for a cycle/blossom
-                            base_u = EdmondsBlossomAlgorithm.find_base(
-                                base, parent, current, y
-                            )
-                            if base_u != EdmondsBlossomAlgorithm.UNMATCHED:
-                                EdmondsBlossomAlgorithm.contract_blossom(
-                                    BlossomData(
-                                        BlossomAuxData(
-                                            queue,
-                                            parent,
-                                            base,
-                                            in_blossom,
-                                            match,
-                                            in_queue,
-                                        ),
-                                        current,
-                                        y,
-                                        base_u,
-                                    )
-                                )
 
         # Create result list of matched pairs
         matching_result: list[list[int]] = []
@@ -190,7 +187,11 @@ class EdmondsBlossomAlgorithm:
 
     @staticmethod
     def find_base(
-        base: list[int], parent: list[int], vertex_u: int, vertex_v: int
+        base: list[int],
+        parent: list[int],
+        match: list[int],
+        vertex_u: int,
+        vertex_v: int,
     ) -> int:
         """
         Finds the base of the blossom.
@@ -198,6 +199,7 @@ class EdmondsBlossomAlgorithm:
         Args:
             base: The base array for each vertex.
             parent: The parent array from BFS.
+            match: The current match list.
             vertex_u: One endpoint of the blossom.
             vertex_v: The other endpoint of the blossom.
 
@@ -206,24 +208,25 @@ class EdmondsBlossomAlgorithm:
         """
         visited: list[bool] = [False] * len(base)
 
-        # Mark ancestors of vertex_u
+        # Mark the bases on the path from vertex_u up to the root. A vertex in
+        # the tree is reached from its match, so the step up goes through it.
         current_vertex_u = vertex_u
         while True:
             current_vertex_u = base[current_vertex_u]
             # Mark this base as visited
             visited[current_vertex_u] = True
-            if parent[current_vertex_u] == EdmondsBlossomAlgorithm.UNMATCHED:
+            if match[current_vertex_u] == EdmondsBlossomAlgorithm.UNMATCHED:
                 break
-            current_vertex_u = parent[current_vertex_u]
+            current_vertex_u = parent[match[current_vertex_u]]
 
-        # Find the common ancestor of vertex_v
+        # Find the first marked base on the path from vertex_v
         current_vertex_v = vertex_v
         while True:
             current_vertex_v = base[current_vertex_v]
             # Check if we've already visited this base
             if visited[current_vertex_v]:
                 return current_vertex_v
-            current_vertex_v = parent[current_vertex_v]
+            current_vertex_v = parent[match[current_vertex_v]]
 
     @staticmethod
     def contract_blossom(blossom_data: BlossomData) -> None:
@@ -233,28 +236,26 @@ class EdmondsBlossomAlgorithm:
         Args:
             blossom_data: The data related to the blossom to be contracted.
         """
-        # Mark vertices in the blossom
-        for x in range(
-            blossom_data.vertex_u,
-            blossom_data.aux_data.base[blossom_data.vertex_u]
-            != blossom_data.lowest_common_ancestor,
-        ):
-            base_x = blossom_data.aux_data.base[x]
-            match_base_x = blossom_data.aux_data.base[blossom_data.aux_data.match[x]]
-            # Mark the base as in a blossom
-            blossom_data.aux_data.in_blossom[base_x] = True
-            blossom_data.aux_data.in_blossom[match_base_x] = True
+        aux_data = blossom_data.aux_data
+        lca = blossom_data.lowest_common_ancestor
+        # Only the bases of this blossom are marked
+        for i in range(len(aux_data.in_blossom)):
+            aux_data.in_blossom[i] = False
 
-        for x in range(
-            blossom_data.vertex_v,
-            blossom_data.aux_data.base[blossom_data.vertex_v]
-            != blossom_data.lowest_common_ancestor,
+        # Walk both sides of the cycle down to the lowest common ancestor, mark
+        # the bases on the way, and point the parents along the cycle so that an
+        # augmenting path through the blossom can be traced later
+        for x, child in (
+            (blossom_data.vertex_u, blossom_data.vertex_v),
+            (blossom_data.vertex_v, blossom_data.vertex_u),
         ):
-            base_x = blossom_data.aux_data.base[x]
-            match_base_x = blossom_data.aux_data.base[blossom_data.aux_data.match[x]]
-            # Mark the base as in a blossom
-            blossom_data.aux_data.in_blossom[base_x] = True
-            blossom_data.aux_data.in_blossom[match_base_x] = True
+            while aux_data.base[x] != lca:
+                # Mark the base as in a blossom
+                aux_data.in_blossom[aux_data.base[x]] = True
+                aux_data.in_blossom[aux_data.base[aux_data.match[x]]] = True
+                aux_data.parent[x] = child
+                child = aux_data.match[x]
+                x = aux_data.parent[aux_data.match[x]]
 
         # Update the base for all marked vertices
         for i in range(len(blossom_data.aux_data.base)):

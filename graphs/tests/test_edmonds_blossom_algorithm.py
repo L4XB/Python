@@ -67,6 +67,30 @@ class EdmondsBlossomAlgorithmTest(unittest.TestCase):
         # Assert that the result is one of the valid maximum matchings
         assert result in (possible_matching_1, possible_matching_2)
 
+    def assert_valid_matching(self, matching, edges, size):
+        """Helper method to check that a matching uses only the given edges,
+        uses each vertex at most once and has the expected size.
+        """
+        edge_set = {tuple(sorted(edge)) for edge in edges}
+        vertices = [vertex for pair in matching for vertex in pair]
+        assert len(vertices) == len(set(vertices))
+        assert all(tuple(sorted(pair)) in edge_set for pair in matching)
+        assert len(matching) == size
+
+    def test_case_triangle_in_another_edge_order(self):
+        """Test Case 6: The triangle of test case 1 with its edges in another order."""
+        edges = [[0, 1], [2, 0], [2, 1]]
+        matching = EdmondsBlossomAlgorithm.maximum_matching(edges, 3)
+
+        self.assert_valid_matching(matching, edges, 1)
+
+    def test_case_augmenting_path_through_a_blossom(self):
+        """Test Case 7: The only augmenting path goes through a blossom."""
+        edges = [[0, 2], [4, 0], [4, 1], [0, 3], [5, 4], [3, 4], [1, 0], [2, 1]]
+        matching = EdmondsBlossomAlgorithm.maximum_matching(edges, 6)
+
+        self.assert_valid_matching(matching, edges, 3)
+
 
 if __name__ == "__main__":
     unittest.main()
