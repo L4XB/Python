@@ -6,9 +6,15 @@ def perfect_cube(n: int) -> bool:
     True
     >>> perfect_cube(4)
     False
+    >>> perfect_cube(64)
+    True
+    >>> perfect_cube(2)
+    False
+    >>> perfect_cube(-27)
+    True
     """
-    val = n ** (1 / 3)
-    return (val * val * val) == n
+    val = round(abs(n) ** (1 / 3))
+    return (val * val * val) == abs(n)
 
 
 def perfect_cube_binary_search(n: int) -> bool:
