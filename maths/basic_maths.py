@@ -67,6 +67,8 @@ def sum_of_divisors(n: int) -> int:
     """Calculate Sum of Divisors.
     >>> sum_of_divisors(100)
     217
+    >>> sum_of_divisors(6)
+    12
     >>> sum_of_divisors(0)
     Traceback (most recent call last):
         ...
@@ -92,6 +94,8 @@ def sum_of_divisors(n: int) -> int:
             n = int(n / i)
         if temp > 1:
             s *= (i**temp - 1) / (i - 1)
+    if n > 1:
+        s *= n + 1
     return int(s)
 
 
