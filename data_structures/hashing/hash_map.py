@@ -171,6 +171,15 @@ class HashMap(MutableMapping[KEY, VAL]):
         HashMap(1: 20)
         """
         for ind in self._iterate_buckets(key):
+            stored = self._buckets[ind]
+            if stored is None:
+                break
+            if stored is not _deleted and stored.key == key:
+                # Update the key where it is stored. Otherwise a deleted bucket
+                # earlier in the probe sequence would get a second copy of it.
+                stored.val = val
+                return
+        for ind in self._iterate_buckets(key):
             if self._try_set(ind, key, val):
                 break
 
@@ -197,6 +206,17 @@ class HashMap(MutableMapping[KEY, VAL]):
         >>> hm.__setitem__(1, 30)
         >>> hm
         HashMap(1: 30)
+
+        4. Changing the value of an item that is stored after a deleted item
+        >>> hm = HashMap(5)
+        >>> hm[0] = 10
+        >>> hm[5] = 20
+        >>> del hm[0]
+        >>> hm[5] = 30
+        >>> hm
+        HashMap(5: 30)
+        >>> len(hm)
+        1
         """
         if self._is_full():
             self._size_up()
